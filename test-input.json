@@ -1,5 +1,10 @@
 {
     "integer": 123,
+    "negative-integer": -123,
+    "large-integer": 10E10,
+    "decimal-number": 1.5,
+    "large-number": 1.5E+10,
+    "small-number": 0.5E-10,
     "string": "string",
     "empty-array": [],
     "integer-array": [1,2,3],

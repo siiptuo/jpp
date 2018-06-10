@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define DIGIT '0': case '1': case '2': case '3': case '4': case '5': \
+                   case '6': case '7': case '8': case '9'
+
 void parse_value();
 
 int indent;
@@ -42,14 +45,72 @@ void parse_string() {
   while (putchar(getchar()) != '"');
 }
 
+void parse_exponent() {
+  char c = getchar();
+  switch (c) {
+    case '+':
+      break;
+    case '-':
+      putchar('-');
+      break;
+    case DIGIT:
+      putchar(c);
+      break;
+    default:
+      fprintf(stderr, "expected sign or digit");
+      exit(EXIT_FAILURE);
+  }
+  while (1) {
+    switch (c = getchar()) {
+      case DIGIT:
+        putchar(c);
+        break;
+      default:
+        ungetc(c, stdin);
+        return;
+    }
+  }
+}
+
+void parse_decimal() {
+  while (1) {
+    char c = getchar();
+    switch (c) {
+      case DIGIT:
+        putchar(c);
+        break;
+      case 'e':
+      case 'E':
+        putchar('e');
+        parse_exponent();
+        break;
+      default:
+        ungetc(c, stdin);
+        return;
+    }
+  }
+}
+
 void parse_number() {
   while (1) {
     char c = getchar();
-    if (!isdigit(c)) {
-      ungetc(c, stdin);
-      return;
+    switch (c) {
+      case DIGIT:
+        putchar(c);
+        break;
+      case 'e':
+      case 'E':
+        putchar('e');
+        parse_exponent();
+        break;
+      case '.':
+        putchar('.');
+        parse_decimal();
+        break;
+      default:
+        ungetc(c, stdin);
+        return;
     }
-    putchar(c);
   }
 }
 
@@ -129,16 +190,8 @@ void parse_value() {
     case '"':
       parse_string();
       break;
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
+    case '-':
+    case DIGIT:
       parse_number();
       break;
     case '{':
