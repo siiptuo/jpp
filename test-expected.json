@@ -6,6 +6,8 @@
   "large-number": 1.5e10,
   "small-number": 0.5e-10,
   "string": "string",
+  "escape-string": "hello\"\\\/\b\f\n\r\tworld",
+  "unicode-string": "$¢€",
   "empty-array": [],
   "integer-array": [
     1,

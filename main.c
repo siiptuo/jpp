@@ -41,8 +41,78 @@ char nextchar() {
   return c;
 }
 
+int readhex() {
+  switch (getchar()) {
+    case '0': return 0;
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    case '4': return 4;
+    case '5': return 5;
+    case '6': return 6;
+    case '7': return 7;
+    case '8': return 8;
+    case '9': return 9;
+    case 'a': case 'A': return 10;
+    case 'b': case 'B': return 11;
+    case 'c': case 'C': return 12;
+    case 'd': case 'D': return 13;
+    case 'e': case 'E': return 14;
+    case 'f': case 'F': return 15;
+    default:
+      fprintf(stderr, "expected hex\n");
+      exit(EXIT_FAILURE);
+  }
+}
+
+void parse_unicode() {
+  int c = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
+  if (c < 0x80) {
+    putchar(c);
+  } else if (c < 0x0800) {
+    putchar(0xc0 | (c >> 6));
+    putchar(0x80 | (c & 0x3f));
+  } else {
+    putchar(0xe0 | (c >> 12));
+    putchar(0x80 | ((c >> 6) & 0x3f));
+    putchar(0x80 | (c & 0x3f));
+  }
+}
+
 void parse_string() {
-  while (putchar(getchar()) != '"');
+  while (1) {
+    char c = getchar();
+    if (iscntrl(c)) {
+      fprintf(stderr, "control character\n");
+      exit(EXIT_FAILURE);
+    }
+    if (c == '"') {
+      putchar(c);
+      return;
+    } else if (c == '\\') {
+      switch (c = getchar()) {
+        case '"':
+        case '\\':
+        case '/':
+        case 'b':
+        case 'f':
+        case 'n':
+        case 'r':
+        case 't':
+          putchar('\\');
+          putchar(c);
+          break;
+        case 'u':
+          parse_unicode();
+          break;
+        default:
+          fprintf(stderr, "unknown escape character: %c\n", c);
+          exit(EXIT_FAILURE);
+      }
+    } else {
+      putchar(c);
+    }
+  }
 }
 
 void parse_exponent() {
