@@ -17,5 +17,8 @@
   "empty-object": {},
   "object": {
     "integer": 123
-  }
+  },
+  "true": true,
+  "false": false,
+  "null": null
 }

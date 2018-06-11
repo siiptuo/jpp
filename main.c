@@ -23,13 +23,18 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define DIGIT '0': case '1': case '2': case '3': case '4': case '5': \
                    case '6': case '7': case '8': case '9'
+#define COLOR_RED     "\x1b[31m"
+#define COLOR_GREEN   "\x1b[32m"
+#define COLOR_MAGENTA "\x1b[35m"
+#define COLOR_RESET   "\x1b[0m"
 
 void parse_value();
 
-int indent;
+int indent, colors;
 
 void print_indent() {
   for (int i = 0; i < indent * 2; i++) putchar(' ');
@@ -60,6 +65,7 @@ int readhex() {
     case 'e': case 'E': return 14;
     case 'f': case 'F': return 15;
     default:
+      if (colors) printf(COLOR_RESET);
       fprintf(stderr, "expected hex\n");
       exit(EXIT_FAILURE);
   }
@@ -80,13 +86,16 @@ void parse_unicode() {
 }
 
 void parse_string() {
+  if (colors) printf(COLOR_RED);
   while (1) {
     char c = getchar();
     if (iscntrl(c)) {
+      if (colors) printf(COLOR_RESET);
       fprintf(stderr, "control character\n");
       exit(EXIT_FAILURE);
     }
     if (c == '"') {
+      if (colors) printf(COLOR_RESET);
       putchar(c);
       return;
     } else if (c == '\\') {
@@ -99,13 +108,16 @@ void parse_string() {
         case 'n':
         case 'r':
         case 't':
+          if (colors) printf(COLOR_MAGENTA);
           putchar('\\');
           putchar(c);
+          if (colors) printf(COLOR_RED);
           break;
         case 'u':
           parse_unicode();
           break;
         default:
+          if (colors) printf(COLOR_RESET);
           fprintf(stderr, "unknown escape character: %c\n", c);
           exit(EXIT_FAILURE);
       }
@@ -127,6 +139,7 @@ void parse_exponent() {
       putchar(c);
       break;
     default:
+      if (colors) printf(COLOR_RESET);
       fprintf(stderr, "expected sign or digit");
       exit(EXIT_FAILURE);
   }
@@ -136,6 +149,7 @@ void parse_exponent() {
         putchar(c);
         break;
       default:
+        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
@@ -155,6 +169,7 @@ void parse_decimal() {
         parse_exponent();
         break;
       default:
+        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
@@ -178,6 +193,7 @@ void parse_number() {
         parse_decimal();
         break;
       default:
+        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
@@ -211,6 +227,7 @@ void parse_object() {
         putchar('"');
         parse_string();
         if (nextchar() != ':') {
+          if (colors) printf(COLOR_RESET);
           fprintf(stderr, "expected :");
           exit(EXIT_FAILURE);
         }
@@ -219,6 +236,7 @@ void parse_object() {
         parse_value();
         break;
       default:
+        if (colors) printf(COLOR_RESET);
         fprintf(stderr, "expected \" or ,");
         exit(EXIT_FAILURE);
     }
@@ -249,6 +267,7 @@ void parse_array() {
         putchar('\n');
         continue;
       default:
+        if (colors) printf(COLOR_RESET);
         fprintf(stderr, "expected ] or ,");
         exit(EXIT_FAILURE);
     }
@@ -256,37 +275,52 @@ void parse_array() {
 }
 
 void parse_value() {
-  switch (putchar(nextchar())) {
+  char c = nextchar();
+  switch (c) {
     case '"':
+      putchar(c);
       parse_string();
       break;
     case '-':
     case DIGIT:
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
       parse_number();
       break;
     case '{':
+      putchar(c);
       indent++;
       parse_object();
       break;
     case '[':
+      putchar(c);
       indent++;
       parse_array();
       break;
     case 't':
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
       putchar(getchar());
       putchar(getchar());
       putchar(getchar());
+      if (colors) printf(COLOR_RESET);
       break;
     case 'f':
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
       putchar(getchar());
       putchar(getchar());
       putchar(getchar());
       putchar(getchar());
+      if (colors) printf(COLOR_RESET);
       break;
     case 'n':
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
       putchar(getchar());
       putchar(getchar());
       putchar(getchar());
+      if (colors) printf(COLOR_RESET);
       break;
     default:
       exit(EXIT_FAILURE);
@@ -294,6 +328,7 @@ void parse_value() {
 }
 
 int main() {
+  colors = isatty(fileno(stdout));
   parse_value();
   putchar('\n');
   return EXIT_SUCCESS;
