@@ -40,6 +40,13 @@ void print_indent() {
   for (int i = 0; i < indent * 2; i++) putchar(' ');
 }
 
+void print_escape(char c) {
+  if (colors) printf(COLOR_MAGENTA);
+  putchar('\\');
+  putchar(c);
+  if (colors) printf(COLOR_RED);
+}
+
 char nextchar() {
   char c;
   while (isspace(c = getchar()));
@@ -72,7 +79,32 @@ int readhex() {
 }
 
 void parse_unicode() {
+  // Read Unicode code point.
   int c = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
+
+  // Print character escape sequence if it has one.
+  switch (c) {
+    case '"':
+    case '\\':
+    case '/':
+      print_escape(c);
+      return;
+    case '\b': print_escape('b'); return;
+    case '\f': print_escape('f'); return;
+    case '\n': print_escape('n'); return;
+    case '\r': print_escape('r'); return;
+    case '\t': print_escape('t'); return;
+    default:
+      break;
+  }
+
+  // Control characters are not allowed in JSON strings.
+  if (iscntrl(c)) {
+    printf("\\u%04x", c);
+    return;
+  }
+
+  // Otherwise print character using UTF-8.
   if (c < 0x80) {
     putchar(c);
   } else if (c < 0x0800) {
@@ -108,10 +140,7 @@ void parse_string() {
         case 'n':
         case 'r':
         case 't':
-          if (colors) printf(COLOR_MAGENTA);
-          putchar('\\');
-          putchar(c);
-          if (colors) printf(COLOR_RED);
+          print_escape(c);
           break;
         case 'u':
           parse_unicode();
