@@ -107,7 +107,9 @@ void parse_unicode() {
 
   // Control characters are not allowed in JSON strings.
   if (iscntrl(c)) {
+    if (colors) printf(COLOR_MAGENTA);
     printf("\\u%04x", c);
+    if (colors) printf(COLOR_RED);
     return;
   }
 
