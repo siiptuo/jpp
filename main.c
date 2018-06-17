@@ -58,6 +58,11 @@ int nextchar() {
   return c;
 }
 
+void expect(int c) {
+  if (getchar() != c) fail("expected %c", c);
+  putchar(c);
+}
+
 int readhex() {
   switch (getchar()) {
     case '0': return 0;
@@ -369,27 +374,27 @@ void parse_value() {
       break;
     case 't':
       if (colors) printf(COLOR_GREEN);
-      putchar(c);
-      putchar(getchar());
-      putchar(getchar());
-      putchar(getchar());
+      putchar('t');
+      expect('r');
+      expect('u');
+      expect('e');
       if (colors) printf(COLOR_RESET);
       break;
     case 'f':
       if (colors) printf(COLOR_GREEN);
-      putchar(c);
-      putchar(getchar());
-      putchar(getchar());
-      putchar(getchar());
-      putchar(getchar());
+      putchar('f');
+      expect('a');
+      expect('l');
+      expect('s');
+      expect('e');
       if (colors) printf(COLOR_RESET);
       break;
     case 'n':
       if (colors) printf(COLOR_GREEN);
-      putchar(c);
-      putchar(getchar());
-      putchar(getchar());
-      putchar(getchar());
+      putchar('n');
+      expect('u');
+      expect('l');
+      expect('l');
       if (colors) printf(COLOR_RESET);
       break;
     default:
