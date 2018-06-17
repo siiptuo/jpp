@@ -34,6 +34,13 @@ void parse_value();
 
 int indent, colors;
 
+#define fail(...) \
+  do { \
+    if (colors) printf(COLOR_RESET); \
+    fprintf(stderr, __VA_ARGS__); \
+    exit(EXIT_FAILURE); \
+  } while (0) \
+
 void print_indent() {
   for (int i = 0; i < indent * 2; i++) putchar(' ');
 }
@@ -45,8 +52,8 @@ void print_escape(char c) {
   if (colors) printf(COLOR_RED);
 }
 
-char nextchar() {
-  char c;
+int nextchar() {
+  int c;
   while (isspace(c = getchar()));
   return c;
 }
@@ -69,10 +76,7 @@ int readhex() {
     case 'd': case 'D': return 13;
     case 'e': case 'E': return 14;
     case 'f': case 'F': return 15;
-    default:
-      if (colors) printf(COLOR_RESET);
-      fprintf(stderr, "expected hex\n");
-      exit(EXIT_FAILURE);
+    default: fail("expected hex\n");
   }
 }
 
@@ -119,11 +123,7 @@ void parse_string() {
   if (colors) printf(COLOR_RED);
   while (1) {
     char c = getchar();
-    if (iscntrl(c)) {
-      if (colors) printf(COLOR_RESET);
-      fprintf(stderr, "control character\n");
-      exit(EXIT_FAILURE);
-    }
+    if (iscntrl(c)) fail("control character\n");
     if (c == '"') {
       if (colors) printf(COLOR_RESET);
       putchar(c);
@@ -144,9 +144,7 @@ void parse_string() {
           parse_unicode();
           break;
         default:
-          if (colors) printf(COLOR_RESET);
-          fprintf(stderr, "unknown escape character: %c\n", c);
-          exit(EXIT_FAILURE);
+          fail("unknown escape character: %c\n", c);
       }
     } else {
       putchar(c);
@@ -166,16 +164,14 @@ void parse_exponent() {
       putchar(c);
       goto rest;
     default:
-      fprintf(stderr, "expected sign or digit");
-      exit(EXIT_FAILURE);
+      fail("expected sign or digit");
   }
   switch (c = getchar()) {
     case '0' ... '9':
       putchar(c);
       break;
     default:
-      fprintf(stderr, "expected digit");
-      exit(EXIT_FAILURE);
+      fail("expected digit");
   }
 rest:
   while (1) {
@@ -279,17 +275,11 @@ void parse_object() {
       putchar('"');
       break;
     default:
-      if (colors) printf(COLOR_RESET);
-      fprintf(stderr, "expected } or \"");
-      exit(EXIT_FAILURE);
+      fail("expected } or \"");
   }
   while (1) {
     parse_string();
-    if (nextchar() != ':') {
-      if (colors) printf(COLOR_RESET);
-      fprintf(stderr, "expected :");
-      exit(EXIT_FAILURE);
-    }
+    if (nextchar() != ':') fail("expected :");
     putchar(':');
     putchar(' ');
     parse_value();
@@ -301,20 +291,14 @@ void parse_object() {
         putchar('}');
         return;
       case ',':
-        if (nextchar() != '"') {
-          if (colors) printf(COLOR_RESET);
-          fprintf(stderr, "expected \"");
-          exit(EXIT_FAILURE);
-        }
         putchar(',');
+        if (nextchar() != '"') fail("expected \"");
         putchar('\n');
         print_indent();
         putchar('"');
         continue;
       default:
-        if (colors) printf(COLOR_RESET);
-        fprintf(stderr, "expected } or ,");
-        exit(EXIT_FAILURE);
+        fail("expected } or ,");
     }
   }
 }
@@ -343,9 +327,7 @@ void parse_array() {
         putchar('\n');
         continue;
       default:
-        if (colors) printf(COLOR_RESET);
-        fprintf(stderr, "expected ] or ,");
-        exit(EXIT_FAILURE);
+        fail("expected ] or ,");
     }
   }
 }
@@ -412,7 +394,7 @@ void parse_value() {
       break;
     default:
       if (colors) printf(COLOR_RESET);
-      fprintf(stderr, "unexpected character");
+      fail("unexpected character");
       exit(EXIT_FAILURE);
   }
 }
@@ -420,11 +402,7 @@ void parse_value() {
 int main() {
   colors = isatty(fileno(stdout));
   parse_value();
-  if (nextchar() != EOF) {
-    if (colors) printf(COLOR_RESET);
-    fprintf(stderr, "expected EOF\n");
-    exit(EXIT_FAILURE);
-  }
+  if (nextchar() != EOF) fail("expected EOF");
   putchar('\n');
   return EXIT_SUCCESS;
 }
