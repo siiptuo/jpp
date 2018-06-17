@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define DIGIT '0': case '1': case '2': case '3': case '4': case '5': \
-                   case '6': case '7': case '8': case '9'
 #define COLOR_RED     "\x1b[31m"
 #define COLOR_GREEN   "\x1b[32m"
 #define COLOR_MAGENTA "\x1b[35m"
@@ -164,21 +162,28 @@ void parse_exponent() {
     case '-':
       putchar('-');
       break;
-    case DIGIT:
+    case '0' ... '9':
       putchar(c);
-      break;
+      goto rest;
     default:
-      if (colors) printf(COLOR_RESET);
       fprintf(stderr, "expected sign or digit");
       exit(EXIT_FAILURE);
   }
+  switch (c = getchar()) {
+    case '0' ... '9':
+      putchar(c);
+      break;
+    default:
+      fprintf(stderr, "expected digit");
+      exit(EXIT_FAILURE);
+  }
+rest:
   while (1) {
     switch (c = getchar()) {
-      case DIGIT:
+      case '0' ... '9':
         putchar(c);
         break;
       default:
-        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
@@ -189,7 +194,7 @@ void parse_decimal() {
   while (1) {
     char c = getchar();
     switch (c) {
-      case DIGIT:
+      case '0' ... '9':
         putchar(c);
         break;
       case 'e':
@@ -198,7 +203,6 @@ void parse_decimal() {
         parse_exponent();
         break;
       default:
-        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
@@ -209,7 +213,7 @@ void parse_number() {
   while (1) {
     char c = getchar();
     switch (c) {
-      case DIGIT:
+      case '0' ... '9':
         putchar(c);
         break;
       case 'e':
@@ -222,24 +226,73 @@ void parse_number() {
         parse_decimal();
         break;
       default:
-        if (colors) printf(COLOR_RESET);
         ungetc(c, stdin);
         return;
     }
   }
 }
 
-void parse_object() {
-  int c = nextchar();
-  if (c == '}') {
-    indent--;
-    putchar('}');
-    return;
+void parse_zero() {
+  char c = getchar();
+  switch (c) {
+    case 'e':
+    case 'E':
+      putchar('e');
+      parse_exponent();
+      break;
+    case '.':
+      putchar('.');
+      parse_decimal();
+      break;
+    default:
+      ungetc(c, stdin);
+      break;
   }
-  ungetc(c, stdin);
-  putchar('\n');
-  print_indent();
+}
+
+void parse_negative_number() {
+  char c = getchar();
+  switch (c) {
+    case '0':
+      putchar(c);
+      parse_zero();
+      break;
+    case '1' ... '9':
+      putchar(c);
+      parse_number();
+      break;
+    default:
+      ungetc(c, stdin);
+      break;
+  }
+}
+
+void parse_object() {
+  switch (nextchar()) {
+    case '}':
+      indent--;
+      putchar('}');
+      return;
+    case '"':
+      putchar('\n');
+      print_indent();
+      putchar('"');
+      break;
+    default:
+      if (colors) printf(COLOR_RESET);
+      fprintf(stderr, "expected } or \"");
+      exit(EXIT_FAILURE);
+  }
   while (1) {
+    parse_string();
+    if (nextchar() != ':') {
+      if (colors) printf(COLOR_RESET);
+      fprintf(stderr, "expected :");
+      exit(EXIT_FAILURE);
+    }
+    putchar(':');
+    putchar(' ');
+    parse_value();
     switch (nextchar()) {
       case '}':
         putchar('\n');
@@ -248,25 +301,19 @@ void parse_object() {
         putchar('}');
         return;
       case ',':
+        if (nextchar() != '"') {
+          if (colors) printf(COLOR_RESET);
+          fprintf(stderr, "expected \"");
+          exit(EXIT_FAILURE);
+        }
         putchar(',');
         putchar('\n');
         print_indent();
-        continue;
-      case '"':
         putchar('"');
-        parse_string();
-        if (nextchar() != ':') {
-          if (colors) printf(COLOR_RESET);
-          fprintf(stderr, "expected :");
-          exit(EXIT_FAILURE);
-        }
-        putchar(':');
-        putchar(' ');
-        parse_value();
-        break;
+        continue;
       default:
         if (colors) printf(COLOR_RESET);
-        fprintf(stderr, "expected \" or ,");
+        fprintf(stderr, "expected } or ,");
         exit(EXIT_FAILURE);
     }
   }
@@ -311,10 +358,22 @@ void parse_value() {
       parse_string();
       break;
     case '-':
-    case DIGIT:
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
+      parse_negative_number();
+      if (colors) printf(COLOR_RESET);
+      break;
+    case '0':
+      if (colors) printf(COLOR_GREEN);
+      putchar(c);
+      parse_zero();
+      if (colors) printf(COLOR_RESET);
+      break;
+    case '1' ... '9':
       if (colors) printf(COLOR_GREEN);
       putchar(c);
       parse_number();
+      if (colors) printf(COLOR_RESET);
       break;
     case '{':
       putchar(c);
@@ -352,6 +411,8 @@ void parse_value() {
       if (colors) printf(COLOR_RESET);
       break;
     default:
+      if (colors) printf(COLOR_RESET);
+      fprintf(stderr, "unexpected character");
       exit(EXIT_FAILURE);
   }
 }
@@ -359,6 +420,11 @@ void parse_value() {
 int main() {
   colors = isatty(fileno(stdout));
   parse_value();
+  if (nextchar() != EOF) {
+    if (colors) printf(COLOR_RESET);
+    fprintf(stderr, "expected EOF\n");
+    exit(EXIT_FAILURE);
+  }
   putchar('\n');
   return EXIT_SUCCESS;
 }
