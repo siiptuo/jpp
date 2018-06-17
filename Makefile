@@ -1,7 +1,7 @@
 all: jpp
 
 jpp: main.c
-	@cc main.c -o jpp
+	@$(CC) -std=c99 -D_POSIX_C_SOURCE main.c -o jpp
 
 test: jpp
 	@./test.sh
