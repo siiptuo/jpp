@@ -41,8 +41,15 @@ int indent, colors;
     exit(EXIT_FAILURE); \
   } while (0) \
 
+#define INDENT_BUFFER_SIZE 255
+
+char indent_buffer[INDENT_BUFFER_SIZE] = {[0 ... INDENT_BUFFER_SIZE - 1] = ' '};
+
 void print_indent() {
-  for (int i = 0; i < indent * 2; i++) putchar(' ');
+  size_t i = 2 * indent;
+  for (; i > INDENT_BUFFER_SIZE; i -= INDENT_BUFFER_SIZE)
+    fwrite(indent_buffer, 1, INDENT_BUFFER_SIZE, stdout);
+  fwrite(indent_buffer, 1, i, stdout);
 }
 
 void print_escape(char c) {
