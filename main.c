@@ -414,9 +414,18 @@ void parse_value() {
 }
 
 int main() {
+  // `stdin` is line buffered by default. This means that it will be flushed
+  // frequently with already formatted input. To prevent this, let's make it
+  // block buffered.
+  char buf[BUFSIZ];
+  setbuf(stdin, buf);
+
+  // Enable colors if output is TTY.
   colors = isatty(fileno(stdout));
+
   parse_value();
   if (nextchar() != EOF) fail("expected EOF");
   putchar('\n');
+
   return EXIT_SUCCESS;
 }
