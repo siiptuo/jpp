@@ -10,6 +10,7 @@
   "unicode-escape": "\"\\\/\b\f\n\r\t",
   "unicode-control-chars": "\u0000\u0001\u0003\u0004",
   "unicode-string": "$¢€",
+  "unicode-surrogate": "😀",
   "empty-array": [],
   "integer-array": [
     1,

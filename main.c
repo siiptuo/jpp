@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #define COLOR_RED     "\x1b[31m"
@@ -92,9 +93,38 @@ int readhex() {
   }
 }
 
+void print_utf8(uint32_t c) {
+  if (c < 0x80) {
+    putchar(c);
+  } else if (c < 0x0800) {
+    putchar(0xc0 | (c >> 6));
+    putchar(0x80 | (c & 0x3f));
+  } else if (c < 0x10000) {
+    putchar(0xe0 | (c >> 12));
+    putchar(0x80 | ((c >> 6) & 0x3f));
+    putchar(0x80 | (c & 0x3f));
+  } else {
+    putchar(0xf0 | (c >> 18));
+    putchar(0x80 | ((c >> 12) & 0x3f));
+    putchar(0x80 | ((c >> 6) & 0x3f));
+    putchar(0x80 | (c & 0x3f));
+  }
+}
+
 void parse_unicode() {
   // Read Unicode code point.
-  int c = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
+  uint16_t c = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
+
+  // Handle UTF-16 surrogate pairs. Check for high surrogate.
+  if (c >> 10 == 0x36) {
+    // Read low surrogate.
+    if (getchar() != '\\') fail("expected \\");
+    if (getchar() != 'u') fail("expected u");
+    uint16_t d = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
+    if (d >> 10 != 0x37) fail("expected low surrogate");
+    print_utf8(0x10000 | (c & 0x3ff) << 10 | d & 0x3ff);
+    return;
+  }
 
   // Print character escape sequence if it has one.
   switch (c) {
@@ -120,17 +150,7 @@ void parse_unicode() {
     return;
   }
 
-  // Otherwise print character using UTF-8.
-  if (c < 0x80) {
-    putchar(c);
-  } else if (c < 0x0800) {
-    putchar(0xc0 | (c >> 6));
-    putchar(0x80 | (c & 0x3f));
-  } else {
-    putchar(0xe0 | (c >> 12));
-    putchar(0x80 | ((c >> 6) & 0x3f));
-    putchar(0x80 | (c & 0x3f));
-  }
+  print_utf8(c);
 }
 
 void parse_string() {
