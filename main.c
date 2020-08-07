@@ -20,10 +20,10 @@
  * IN THE SOFTWARE.
  */
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <unistd.h>
 
 #define COLOR_RED     "\x1b[31m"
@@ -53,6 +53,12 @@ void print_indent() {
   fwrite(indent_buffer, 1, i, stdout);
 }
 
+void assert_recursion() {
+  if (indent >= 20) {
+    fail("too deep\n");
+  }
+}
+
 void print_escape(char c) {
   if (colors) printf(COLOR_MAGENTA);
   putchar('\\');
@@ -60,14 +66,22 @@ void print_escape(char c) {
   if (colors) printf(COLOR_RED);
 }
 
+bool is_control(char c) {
+  return (unsigned char)c <= 0x1F;
+}
+
+bool is_space(char c) {
+  return c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
+}
+
 int nextchar() {
   int c;
-  while (isspace(c = getchar()));
+  while (is_space(c = getchar()));
   return c;
 }
 
 void expect(int c) {
-  if (getchar() != c) fail("expected %c", c);
+  if (getchar() != c) fail("expected %c\n", c);
   putchar(c);
 }
 
@@ -143,7 +157,7 @@ void parse_unicode() {
   }
 
   // Control characters are not allowed in JSON strings.
-  if (iscntrl(c)) {
+  if (is_control(c)) {
     if (colors) printf(COLOR_MAGENTA);
     printf("\\u%04x", c);
     if (colors) printf(COLOR_RED);
@@ -157,7 +171,8 @@ void parse_string() {
   if (colors) printf(COLOR_RED);
   while (1) {
     char c = getchar();
-    if (iscntrl(c)) fail("control character\n");
+    if (c == EOF) fail("unexpected end of file\n");
+    if (is_control(c)) fail("control character\n");
     if (c == '"') {
       if (colors) printf(COLOR_RESET);
       putchar(c);
@@ -177,6 +192,8 @@ void parse_string() {
         case 'u':
           parse_unicode();
           break;
+        case EOF:
+          fail("unexpected end of file\n");
         default:
           fail("unknown escape character: %c\n", c);
       }
@@ -198,14 +215,14 @@ void parse_exponent() {
       putchar(c);
       goto rest;
     default:
-      fail("expected sign or digit");
+      fail("expected sign or digit\n");
   }
   switch (c = getchar()) {
     case '0' ... '9':
       putchar(c);
       break;
     default:
-      fail("expected digit");
+      fail("expected digit\n");
   }
 rest:
   while (1) {
@@ -220,10 +237,17 @@ rest:
   }
 }
 
-void parse_decimal() {
+void parse_fraction() {
+  char c = getchar();
+  switch (c) {
+    case '0' ... '9':
+      putchar(c);
+      break;
+    default:
+      fail("expected digit\n");
+  }
   while (1) {
-    char c = getchar();
-    switch (c) {
+    switch (c = getchar()) {
       case '0' ... '9':
         putchar(c);
         break;
@@ -253,7 +277,7 @@ void parse_number() {
         break;
       case '.':
         putchar('.');
-        parse_decimal();
+        parse_fraction();
         break;
       default:
         ungetc(c, stdin);
@@ -272,7 +296,7 @@ void parse_zero() {
       break;
     case '.':
       putchar('.');
-      parse_decimal();
+      parse_fraction();
       break;
     default:
       ungetc(c, stdin);
@@ -292,12 +316,12 @@ void parse_negative_number() {
       parse_number();
       break;
     default:
-      ungetc(c, stdin);
-      break;
+      fail("expected number\n");
   }
 }
 
 void parse_object() {
+  assert_recursion();
   switch (nextchar()) {
     case '}':
       indent--;
@@ -309,11 +333,11 @@ void parse_object() {
       putchar('"');
       break;
     default:
-      fail("expected } or \"");
+      fail("expected } or \"\n");
   }
   while (1) {
     parse_string();
-    if (nextchar() != ':') fail("expected :");
+    if (nextchar() != ':') fail("expected :\n");
     putchar(':');
     putchar(' ');
     parse_value();
@@ -326,7 +350,7 @@ void parse_object() {
         return;
       case ',':
         putchar(',');
-        if (nextchar() != '"') fail("expected \"");
+        if (nextchar() != '"') fail("expected \"\n");
         putchar('\n');
         print_indent();
         putchar('"');
@@ -338,6 +362,7 @@ void parse_object() {
 }
 
 void parse_array() {
+  assert_recursion();
   int c = nextchar();
   if (c == ']') {
     indent--;
@@ -361,7 +386,7 @@ void parse_array() {
         putchar('\n');
         continue;
       default:
-        fail("expected ] or ,");
+        fail("expected ] or ,\n");
     }
   }
 }
@@ -428,7 +453,7 @@ void parse_value() {
       break;
     default:
       if (colors) printf(COLOR_RESET);
-      fail("unexpected character");
+      fail("unexpected character\n");
       exit(EXIT_FAILURE);
   }
 }
@@ -444,7 +469,7 @@ int main() {
   colors = isatty(fileno(stdout));
 
   parse_value();
-  if (nextchar() != EOF) fail("expected EOF");
+  if (nextchar() != EOF) fail("expected end of file\n");
   putchar('\n');
 
   return EXIT_SUCCESS;

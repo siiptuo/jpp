@@ -8,7 +8,7 @@ else
   echo "FAIL test-input.json"
 fi
 
-for f in test/pass*; do
+for f in jsonchecker/pass*; do
   ./jpp < $f &> /dev/null
   if [ $? -eq 0 ]; then
     echo "OK   $f"
@@ -17,8 +17,26 @@ for f in test/pass*; do
   fi
 done
 
-# skip fail1.json and fail18.json
-for f in test/fail{2..17}.json test/fail{19..33}.json; do
+# Skip fail1.json because top-level value can be anything, not just object or array
+for f in jsonchecker/fail{2..33}.json; do
+  ./jpp < $f &> /dev/null
+  if [ $? -eq 0 ]; then
+    echo "FAIL $f"
+  else
+    echo "OK   $f"
+  fi
+done
+
+for f in jsontestsuite/y_*; do
+  ./jpp < $f &> /dev/null
+  if [ $? -eq 0 ]; then
+    echo "OK   $f"
+  else
+    echo "FAIL $f"
+  fi
+done
+
+for f in jsontestsuite/n_*; do
   ./jpp < $f &> /dev/null
   if [ $? -eq 0 ]; then
     echo "FAIL $f"
