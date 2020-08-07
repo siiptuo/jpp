@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2018 Tuomas Siipola
+# SPDX-License-Identifier: CC0-1.0
+
 all: jpp
 
 jpp: main.c

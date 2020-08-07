@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2018 Tuomas Siipola
+# SPDX-License-Identifier: CC0-1.0
+
 ./jpp < test-input.json > test-output.json
 diff test-expected.json test-output.json &> /dev/null
 if [ $? -eq 0 ]; then

@@ -1,0 +1,13 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: test-*.json
+Copyright: 2018 Tuomas Siipola
+License: CC0-1.0
+
+Files: jsonchecker/*
+Copyright: 2005 JSON.org
+License: JSON
+
+Files: jsontestsuite/*
+Copyright: 2016 Nicolas Seriot
+License: MIT
