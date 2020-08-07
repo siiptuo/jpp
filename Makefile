@@ -4,7 +4,7 @@
 all: jpp
 
 jpp: main.c
-	@$(CC) -std=c99 -D_POSIX_C_SOURCE main.c -o jpp
+	$(CC) -std=c99 -D_POSIX_C_SOURCE -Werror -Wall -Wextra -Wpedantic -O2 main.c -o jpp
 
 test: jpp
 	@./test.sh

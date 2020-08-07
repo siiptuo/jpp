@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 
 #define COLOR_RED     "\x1b[31m"
@@ -24,8 +25,7 @@ int indent, colors;
   } while (0) \
 
 #define INDENT_BUFFER_SIZE 255
-
-char indent_buffer[INDENT_BUFFER_SIZE] = {[0 ... INDENT_BUFFER_SIZE - 1] = ' '};
+char indent_buffer[INDENT_BUFFER_SIZE];
 
 void print_indent() {
   size_t i = 2 * indent;
@@ -117,7 +117,7 @@ void parse_unicode() {
     if (getchar() != 'u') fail("expected u");
     uint16_t d = readhex() << 12 | readhex() << 8 | readhex() << 4 | readhex();
     if (d >> 10 != 0x37) fail("expected low surrogate");
-    print_utf8(0x10000 | (c & 0x3ff) << 10 | d & 0x3ff);
+    print_utf8(0x10000 | (c & 0x3ff) << 10 | (d & 0x3ff));
     return;
   }
 
@@ -192,14 +192,16 @@ void parse_exponent() {
     case '-':
       putchar('-');
       break;
-    case '0' ... '9':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
       putchar(c);
       goto rest;
     default:
       fail("expected sign or digit\n");
   }
   switch (c = getchar()) {
-    case '0' ... '9':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
       putchar(c);
       break;
     default:
@@ -208,7 +210,8 @@ void parse_exponent() {
 rest:
   while (1) {
     switch (c = getchar()) {
-      case '0' ... '9':
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
         putchar(c);
         break;
       default:
@@ -221,7 +224,8 @@ rest:
 void parse_fraction() {
   char c = getchar();
   switch (c) {
-    case '0' ... '9':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
       putchar(c);
       break;
     default:
@@ -229,7 +233,8 @@ void parse_fraction() {
   }
   while (1) {
     switch (c = getchar()) {
-      case '0' ... '9':
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
         putchar(c);
         break;
       case 'e':
@@ -248,7 +253,8 @@ void parse_number() {
   while (1) {
     char c = getchar();
     switch (c) {
-      case '0' ... '9':
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
         putchar(c);
         break;
       case 'e':
@@ -292,7 +298,8 @@ void parse_negative_number() {
       putchar(c);
       parse_zero();
       break;
-    case '1' ... '9':
+    case '1': case '2': case '3': case '4': case '5':
+    case '6': case '7': case '8': case '9':
       putchar(c);
       parse_number();
       break;
@@ -391,7 +398,8 @@ void parse_value() {
       parse_zero();
       if (colors) printf(COLOR_RESET);
       break;
-    case '1' ... '9':
+    case '1': case '2': case '3': case '4': case '5':
+    case '6': case '7': case '8': case '9':
       if (colors) printf(COLOR_GREEN);
       putchar(c);
       parse_number();
@@ -440,6 +448,8 @@ void parse_value() {
 }
 
 int main() {
+  memset(indent_buffer, ' ', INDENT_BUFFER_SIZE);
+
   // `stdin` is line buffered by default. This means that it will be flushed
   // frequently with already formatted input. To prevent this, let's make it
   // block buffered.
