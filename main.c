@@ -8,21 +8,26 @@
 #include <string.h>
 #include <unistd.h>
 
-#define COLOR_RED     "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_MAGENTA "\x1b[35m"
-#define COLOR_RESET   "\x1b[0m"
+#define TEXT_BOLD    "\x1b[1m"
+#define TEXT_RED     "\x1b[31m"
+#define TEXT_GREEN   "\x1b[32m"
+#define TEXT_MAGENTA "\x1b[35m"
+#define TEXT_RESET   "\x1b[0m"
 
 void parse_value();
 
 int indent, colors;
 
-#define fail(...) \
-  do { \
-    if (colors) printf(COLOR_RESET); \
-    fprintf(stderr, __VA_ARGS__); \
-    exit(EXIT_FAILURE); \
-  } while (0) \
+#define fail(...)                                    \
+  do {                                               \
+    if (colors) printf(TEXT_RESET);                  \
+    fflush(stdout);                                  \
+    if (colors) fprintf(stderr, TEXT_RED TEXT_BOLD); \
+    fprintf(stderr, "\nerror: ");                    \
+    if (colors) fprintf(stderr, TEXT_RESET);         \
+    fprintf(stderr, __VA_ARGS__);                    \
+    exit(EXIT_FAILURE);                              \
+  } while (0)
 
 #define INDENT_BUFFER_SIZE 255
 char indent_buffer[INDENT_BUFFER_SIZE];
@@ -41,10 +46,10 @@ void assert_recursion() {
 }
 
 void print_escape(char c) {
-  if (colors) printf(COLOR_MAGENTA);
+  if (colors) printf(TEXT_MAGENTA);
   putchar('\\');
   putchar(c);
-  if (colors) printf(COLOR_RED);
+  if (colors) printf(TEXT_RED);
 }
 
 bool is_control(char c) {
@@ -139,9 +144,9 @@ void parse_unicode() {
 
   // Control characters are not allowed in JSON strings.
   if (is_control(c)) {
-    if (colors) printf(COLOR_MAGENTA);
+    if (colors) printf(TEXT_MAGENTA);
     printf("\\u%04x", c);
-    if (colors) printf(COLOR_RED);
+    if (colors) printf(TEXT_RED);
     return;
   }
 
@@ -149,13 +154,13 @@ void parse_unicode() {
 }
 
 void parse_string() {
-  if (colors) printf(COLOR_RED);
+  if (colors) printf(TEXT_RED);
   while (1) {
     char c = getchar();
     if (c == EOF) fail("unexpected end of file\n");
     if (is_control(c)) fail("control character\n");
     if (c == '"') {
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       putchar(c);
       return;
     } else if (c == '\\') {
@@ -387,23 +392,23 @@ void parse_value() {
       parse_string();
       break;
     case '-':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar(c);
       parse_negative_number();
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     case '0':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar(c);
       parse_zero();
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     case '1': case '2': case '3': case '4': case '5':
     case '6': case '7': case '8': case '9':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar(c);
       parse_number();
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     case '{':
       putchar(c);
@@ -416,32 +421,32 @@ void parse_value() {
       parse_array();
       break;
     case 't':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar('t');
       expect('r');
       expect('u');
       expect('e');
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     case 'f':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar('f');
       expect('a');
       expect('l');
       expect('s');
       expect('e');
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     case 'n':
-      if (colors) printf(COLOR_GREEN);
+      if (colors) printf(TEXT_GREEN);
       putchar('n');
       expect('u');
       expect('l');
       expect('l');
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       break;
     default:
-      if (colors) printf(COLOR_RESET);
+      if (colors) printf(TEXT_RESET);
       fail("unexpected character\n");
       exit(EXIT_FAILURE);
   }
